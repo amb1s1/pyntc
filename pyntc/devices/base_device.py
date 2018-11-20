@@ -9,11 +9,11 @@ from pyntc.errors import NTCError, FeatureNotFoundError
 
 def fix_docs(cls):
     for name, func in vars(cls).items():
-        if hasattr(func, '__call__') and not func.__doc__:
-            #print(func, 'needs doc')
+        if hasattr(func, "__call__") and not func.__doc__:
+            # print(func, 'needs doc')
             for parent in cls.__bases__:
                 parfunc = getattr(parent, name, None)
-                if parfunc and getattr(parfunc, '__doc__', None):
+                if parfunc and getattr(parfunc, "__doc__", None):
                     func.__doc__ = parfunc.__doc__
                     break
     return cls
@@ -22,7 +22,9 @@ def fix_docs(cls):
 class BaseDevice(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, host, username, password, vendor=None, device_type=None, **kwargs):
+    def __init__(
+        self, host, username, password, vendor=None, device_type=None, **kwargs
+    ):
         self.host = host
         self.username = username
         self.password = password
@@ -333,7 +335,9 @@ class BaseDevice(object):
         """
         try:
             feature_module = importlib.import_module(
-                'pyntc.devices.system_features.%s.%s_%s' % (feature_name, self.device_type, feature_name))
+                "pyntc.devices.system_features.%s.%s_%s"
+                % (feature_name, self.device_type, feature_name)
+            )
             return feature_module.instance(self)
         except ImportError:
             raise FeatureNotFoundError(feature_name, self.device_type)
@@ -358,7 +362,9 @@ class FileTransferError(NTCError):
 
 class RebootTimerError(NTCError):
     def __init__(self, device_type):
-        super(RebootTimerError, self).__init__('Reboot timer not supported on %s.' % device_type)
+        super(RebootTimerError, self).__init__(
+            "Reboot timer not supported on %s." % device_type
+        )
 
 
 class RollbackError(NTCError):
