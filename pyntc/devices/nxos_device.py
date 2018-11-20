@@ -22,12 +22,24 @@ from pynxos.errors import CLIError
 
 @fix_docs
 class NXOSDevice(BaseDevice):
-
-    def __init__(self, host, username, password, transport='http', timeout=30, port=None, **kwargs):
-        super(NXOSDevice, self).__init__(host, username, password, vendor='cisco', device_type='cisco_nxos_nxapi')
+    def __init__(
+        self,
+        host,
+        username,
+        password,
+        transport="http",
+        timeout=30,
+        port=None,
+        **kwargs
+    ):
+        super(NXOSDevice, self).__init__(
+            host, username, password, vendor="cisco", device_type="cisco_nxos_nxapi"
+        )
         self.transport = transport
         self.timeout = timeout
-        self.native = NXOSNative(host, username, password, transport=transport, timeout=timeout, port=port)
+        self.native = NXOSNative(
+            host, username, password, transport=transport, timeout=timeout, port=port
+        )
 
     def _image_booted(self, image_name, **vendor_specifics):
         version_data = self.show("show version", raw_text=True)
@@ -70,16 +82,16 @@ class NXOSDevice(BaseDevice):
 
     @property
     def facts(self):
-        if hasattr(self, '_facts'):
+        if hasattr(self, "_facts"):
             return self._facts
 
         facts = strip_unicode(self.native.facts)
-        facts['vendor'] = self.vendor
+        facts["vendor"] = self.vendor
 
         self._facts = facts
         return self._facts
 
-    def file_copy(self, src, dest=None, file_system='bootflash:'):
+    def file_copy(self, src, dest=None, file_system="bootflash:"):
         if not self.file_copy_remote_exists(src, dest, file_system):
             dest = dest or os.path.basename(src)
             try:
@@ -87,7 +99,7 @@ class NXOSDevice(BaseDevice):
                 if not self.file_copy_remote_exists(src, dest, file_system):
                     raise FileTransferError(
                         message="Attempted file copy, "
-                                "but could not validate file existed after transfer"
+                        "but could not validate file existed after transfer"
                     )
                 return file_copy
             except NXOSFileTransferError as e:
@@ -95,7 +107,7 @@ class NXOSDevice(BaseDevice):
                 raise FileTransferError
 
     # TODO: Make this an internal method since exposing file_copy should be sufficient
-    def file_copy_remote_exists(self, src, dest=None, file_system='bootflash:'):
+    def file_copy_remote_exists(self, src, dest=None, file_system="bootflash:"):
         dest = dest or os.path.basename(src)
         return self.native.file_copy_remote_exists(src, dest, file_system=file_system)
 
@@ -109,7 +121,9 @@ class NXOSDevice(BaseDevice):
             self.set_boot_options(image_name, kickstart=kickstart, **vendor_specifics)
             self._wait_for_device_reboot(timeout=timeout)
             if not self._image_booted(image_name):
-                raise OSInstallError(hostname=self.facts.get("hostname"), desired_boot=image_name)
+                raise OSInstallError(
+                    hostname=self.facts.get("hostname"), desired_boot=image_name
+                )
             self.save()
 
             return True
@@ -129,13 +143,13 @@ class NXOSDevice(BaseDevice):
         try:
             self.native.rollback(filename)
         except CLIError:
-            raise RollbackError('Rollback unsuccessful, %s may not exist.' % filename)
+            raise RollbackError("Rollback unsuccessful, %s may not exist." % filename)
 
     @property
     def running_config(self):
         return self.native.running_config
 
-    def save(self, filename='startup-config'):
+    def save(self, filename="startup-config"):
         return self.native.save(filename=filename)
 
     def set_boot_options(self, image_name, kickstart=None, **vendor_specifics):
@@ -151,7 +165,9 @@ class NXOSDevice(BaseDevice):
         if kickstart is not None:
             if re.search(kickstart, file_system_files) is None:
                 raise NTCFileNotFoundError(
-                    hostname=self.facts.get("hostname"), file=image_name, dir=file_system
+                    hostname=self.facts.get("hostname"),
+                    file=image_name,
+                    dir=file_system,
                 )
 
             kickstart = file_system + kickstart
@@ -177,4 +193,4 @@ class NXOSDevice(BaseDevice):
 
     @property
     def startup_config(self):
-        return self.show('show startup-config', raw_text=True)
+        return self.show("show startup-config", raw_text=True)
