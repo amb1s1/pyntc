@@ -252,19 +252,22 @@ class IOSDevice(BaseDevice):
 
     def get_boot_options(self):
         # TODO: CREATE A MOCK FOR TESTING THIS FUNCTION
-        boot_path_regex = r'(?:BOOT variable\s+=\s+|BOOT path-list\s+:\s+|boot\s+system\s+\S+\s+)(\S+)(?:;|)\s*'
+        boot_path_regex = r"(?:BOOT variable\s+=\s+(\S+)\s*$|BOOT path-list\s+:\s*(\S+)\s*$)"
         try:
             # Try show bootvar command first
             show_boot_out = self.show('show bootvar')
+            show_boot_out = show_boot_out.split("Boot Variables on next reload", 1)[-1]
         except CommandError:
             try:
                 # Try show boot if previous command was invalid
                 show_boot_out = self.show('show boot')
+                show_boot_out = show_boot_out.split("Boot Variables on next reload", 1)[-1]
             except CommandError:
                 # Default to running config value
                 show_boot_out = self.show('show run | inc boot')
+                boot_path_regex = r"boot\s+system\s+(?:\S+\s+|)(\S+)\s*$"
 
-        match = re.search(boot_path_regex, show_boot_out)
+        match = re.search(boot_path_regex, show_boot_out, re.MULTILINE)
         if match:
             boot_path = match.group(1)
             file_system = self._get_file_system()
@@ -368,15 +371,21 @@ class IOSDevice(BaseDevice):
             )
 
         try:
-            self.config_list(['no boot system', 'boot system {0}/{1}'.format(file_system, image_name)])
+            command = "boot system {0}/{1}".format(file_system, image_name)
+            self.config_list(['no boot system', command])
         except CommandError:
             file_system = file_system.replace(':', '')
-            self.config_list(['no boot system', 'boot system {0} {1}'.format(file_system, image_name)])
+            command = "boot system {0} {1}".format(file_system, image_name)
+            self.config_list(['no boot system', command])
 
-        if self.get_boot_options()["sys"] != image_name:
+        self.save()
+        new_boot_options = self.get_boot_options()["sys"]
+        if new_boot_options != image_name:
             raise CommandError(
-                command="boot command",
-                message="Setting boot command did not yield expected results",
+                command=command,
+                message="Setting boot command did not yield expected results, found {0}".format(
+                    new_boot_options
+                ),
             )
 
     def show(self, command, expect=False, expect_string=''):
